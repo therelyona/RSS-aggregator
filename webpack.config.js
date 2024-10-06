@@ -1,7 +1,14 @@
+import path from 'path';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 export default {
   mode: process.env.NODE_ENV || 'development',
+  entry: './src/index.js',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'bundle.js',
+    clean: true,
+  },
   module: {
     rules: [
       {
@@ -14,7 +21,10 @@ export default {
           },
         },
       },
-      { test: /\.css$/, use: ['style-loader', 'css-loader', 'postcss-loader'] },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
+      },
       {
         test: /\.scss$/,
         use: ['style-loader', 'css-loader', 'postcss-loader', 'sass-loader'],
@@ -31,10 +41,7 @@ export default {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: 'index.html',
+      template: './index.html',
     }),
   ],
-  output: {
-    clean: true,
-  },
 };
