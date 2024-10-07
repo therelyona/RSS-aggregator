@@ -23,7 +23,19 @@ export default {
       },
       {
         test: /\.scss$/,
-        use: ['style-loader', 'css-loader', 'postcss-loader', 'sass-loader'],
+        use: [
+          'style-loader',
+          'css-loader',
+          'postcss-loader',
+          {
+            loader: 'sass-loader',
+            options: {
+              sassOptions: {
+                quietDeps: true,
+              },
+            },
+          },
+        ],
       },
       {
         test: /\.(woff2?|ttf|eot|svg)(\?[\s\S]+)?$/,
