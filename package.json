@@ -35,8 +35,10 @@
   },
   "dependencies": {
     "@babel/core": "^7.25.7",
+    "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
     "i18next": "^23.15.2",
+    "lodash": "^4.17.21",
     "on-change": "^5.0.1",
     "yup": "^1.4.0"
   }
