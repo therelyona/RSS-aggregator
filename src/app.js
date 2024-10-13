@@ -109,7 +109,11 @@ const app = () => {
           state.form.processState = 'finished';
         })
         .catch((error) => {
-          state.errors = { url: error.message };
+          if (axios.isAxiosError(error)) {
+            state.errors = i18n.t('errors.networkError');
+          } else {
+            state.errors = error.message;
+          }
           state.form.isValid = false;
           state.form.processState = 'failed';
         })
