@@ -12,6 +12,17 @@ const getAxiosResponse = (link) => {
   return axios.get(url);
 };
 
+const validate = (link, addLinks, i18n) => {
+  const schema = yup.string()
+    .trim()
+    .required(i18n.t('errors.required'))
+    .url(i18n.t('errors.invalidUrl'))
+    .notOneOf(addLinks, i18n.t('errors.duplicateUrl'))
+    .validate(link);
+
+  return schema;
+};
+
 const makeFeed = (feed, value) => {
   const { title, description } = feed;
   const id = uniqueId();
@@ -38,21 +49,39 @@ const makePost = (posts) => {
   return newPosts;
 };
 
-const validate = (link, addLinks, i18n) => {
-  const schema = yup.string()
-    .trim()
-    .required(i18n.t('errors.required'))
-    .url(i18n.t('errors.invalidUrl'))
-    .notOneOf(addLinks, i18n.t('errors.duplicateUrl'))
-    .validate(link);
+const updatePosts = (state, time, i18n) => {
+  const copyState = { ...state };
+  const { post: existingPosts, feeds } = copyState;
 
-  return schema;
+  const fetchPostsFromFeeds = feeds.map((feed) => getAxiosResponse(feed.link)
+    .then((data) => parse(data, i18n))
+    .then((parseData) => makePost(parseData.posts))
+    .catch((error) => {
+      copyState.errors = error.message;
+    }));
+
+  Promise.all(fetchPostsFromFeeds)
+    .then((posts) => {
+      const newPosts = posts.flat();
+      const existingLink = existingPosts.map((post) => post.link);
+      const uniqueNewPosts = newPosts.filter((post) => !existingLink.includes(post.link));
+      state.posts.unshift(...uniqueNewPosts);
+      Object.assign(state, copyState);
+    })
+    .catch((error) => {
+      copyState.errors = error.message;
+      Object.assign(state, copyState);
+    })
+    .finally(() => {
+      setTimeout(() => updatePosts(state, time, i18n), time);
+    });
 };
 
 const app = () => {
+  const defaultLang = 'ru';
   const i18n = i18next.createInstance();
   i18n.init({
-    lng: 'ru',
+    lng: defaultLang,
     debug: false,
     resources,
   }).then(() => {
@@ -87,6 +116,8 @@ const app = () => {
 
     const state = onChange(initialState, view(initialState, elements, i18n));
 
+    const timeOut = 5000;
+
     elements.form.addEventListener('submit', (event) => {
       event.preventDefault();
       state.form.processState = 'sending';
@@ -107,6 +138,7 @@ const app = () => {
 
           state.form.isValid = true;
           state.form.processState = 'finished';
+          updatePosts(state, timeOut);
         })
         .catch((error) => {
           if (axios.isAxiosError(error)) {
