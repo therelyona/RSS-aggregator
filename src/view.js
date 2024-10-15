@@ -136,6 +136,26 @@ const renderFeeds = (elements, state, i18n) => {
   feeds.append(container);
 };
 
+const renderReadPosts = (elements, posts) => {
+  const { modalTitle, modalDescription, modalLink } = elements;
+  const result = posts.forEach((post) => {
+    const {
+      title,
+      description,
+      link,
+      id,
+    } = post;
+    modalTitle.textContent = title;
+    modalDescription.textContent = description;
+    modalLink.textContent = link;
+
+    const linkStyle = document.querySelector(`[data-id="${id}"]`);
+    linkStyle.classList.remove('fw-bold');
+    linkStyle.classList.add('fw-normal', 'text-muted');
+  });
+  return result;
+};
+
 const view = (state, elements, i18n) => (path, value) => {
   switch (path) {
     case 'form.processState':
@@ -146,6 +166,9 @@ const view = (state, elements, i18n) => (path, value) => {
       break;
     case 'feeds':
       renderFeeds(elements, state, i18n);
+      break;
+    case 'readPosts':
+      renderReadPosts(elements, value);
       break;
     default:
       break;
