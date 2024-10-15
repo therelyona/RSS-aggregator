@@ -91,6 +91,9 @@ const app = () => {
       submit: document.querySelector('.rss-form [type="submit"]'),
       feeds: document.querySelector('.feeds'),
       posts: document.querySelector('.posts'),
+      modalTitle: document.querySelector('.modal-title'),
+      modalDescription: document.querySelector('.modal-body'),
+      modalLink: document.querySelector('.full-article'),
     };
 
     const initialState = {
@@ -102,6 +105,8 @@ const app = () => {
       errors: {},
       feeds: [],
       posts: [],
+      readPosts: [],
+      activePost: null,
     };
 
     const state = onChange(initialState, view(initialState, elements, i18n));
@@ -140,6 +145,13 @@ const app = () => {
         .finally(() => {
           state.form.processState = 'filling';
         });
+    });
+
+    elements.posts.addEventListener('click', (e) => {
+      const idPost = e.target.dataset.id;
+      const selectPost = state.posts.find((post) => idPost === post.id);
+      state.activePost = selectPost;
+      state.readPosts.push(selectPost);
     });
   });
 };
