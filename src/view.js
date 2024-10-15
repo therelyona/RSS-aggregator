@@ -48,7 +48,7 @@ const renderProcessState = (value, elements, i18n, errors) => {
       renderErrors(elements, errors);
       break;
     default:
-      throw new Error(`Unknown value: '${value}'!`);
+      break;
   }
 };
 
@@ -147,7 +147,7 @@ const renderReadPosts = (elements, posts) => {
     } = post;
     modalTitle.textContent = title;
     modalDescription.textContent = description;
-    modalLink.textContent = link;
+    modalLink.setAttribute('href', link);
 
     const linkStyle = document.querySelector(`[data-id="${id}"]`);
     linkStyle.classList.remove('fw-bold');
@@ -171,7 +171,7 @@ const view = (state, elements, i18n) => (path, value) => {
       renderReadPosts(elements, value);
       break;
     default:
-      throw new Error(`Unknown path: '${path}'!`);
+      break;
   }
 };
 
