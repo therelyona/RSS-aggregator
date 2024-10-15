@@ -48,7 +48,7 @@ const renderProcessState = (value, elements, i18n, errors) => {
       renderErrors(elements, errors);
       break;
     default:
-      break;
+      throw new Error(`Unknown value: '${value}'!`);
   }
 };
 
@@ -171,7 +171,7 @@ const view = (state, elements, i18n) => (path, value) => {
       renderReadPosts(elements, value);
       break;
     default:
-      break;
+      throw new Error(`Unknown path: '${path}'!`);
   }
 };
 
