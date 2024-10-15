@@ -17,64 +17,58 @@ const validate = (link, addLinks, i18n) => {
     .trim()
     .required(i18n.t('errors.required'))
     .url(i18n.t('errors.invalidUrl'))
-    .notOneOf(addLinks, i18n.t('errors.duplicateUrl'))
-    .validate(link);
+    .notOneOf(addLinks, i18n.t('errors.duplicateUrl'));
 
-  return schema;
+  return schema.validate(link);
 };
 
-const makeFeed = (feed, value) => {
-  const { title, description } = feed;
-  const id = uniqueId();
-  const link = value;
-  return {
-    title,
-    description,
-    id,
-    link,
-  };
-};
+const makeFeed = (feed, value) => ({
+  title: feed.title,
+  description: feed.description,
+  id: uniqueId(),
+  link: value,
+});
 
-const makePost = (posts) => {
-  const newPosts = posts.map((item) => {
-    const { title, description, link } = item;
-    const id = uniqueId();
-    return {
-      title,
-      description,
-      id,
-      link,
-    };
-  });
-  return newPosts;
-};
+const makePost = (posts) => posts.map(({ title, description, link }) => ({
+  title,
+  description,
+  id: uniqueId(),
+  link,
+}));
 
-const updatePosts = (state, time, i18n) => {
-  const copyState = { ...state };
-  const { post: existingPosts, feeds } = copyState;
+const fetchPostsFromFeeds = (feeds, state, i18n) => {
+  const fetchPromises = feeds.map((feed) => getAxiosResponse(feed.link)
+    .then((response) => parse(response, i18n))
+    .then((parsedData) => {
+      const newPosts = makePost(parsedData.posts);
+      const uniqueNewPosts = newPosts.filter(
+        (newPost) => !state.posts.some((post) => post.link === newPost.link),
+      );
 
-  const fetchPostsFromFeeds = feeds.map((feed) => getAxiosResponse(feed.link)
-    .then((data) => parse(data, i18n))
-    .then((parseData) => makePost(parseData.posts))
+      if (uniqueNewPosts.length > 0) {
+        state.posts.unshift(...uniqueNewPosts);
+      }
+    })
     .catch((error) => {
-      copyState.errors = error.message;
+      throw new Error(error.message);
     }));
 
-  Promise.all(fetchPostsFromFeeds)
-    .then((posts) => {
-      const newPosts = posts.flat();
-      const existingLink = existingPosts.map((post) => post.link);
-      const uniqueNewPosts = newPosts.filter((post) => !existingLink.includes(post.link));
-      state.posts.unshift(...uniqueNewPosts);
-      Object.assign(state, copyState);
-    })
-    .catch((error) => {
-      copyState.errors = error.message;
-      Object.assign(state, copyState);
-    })
-    .finally(() => {
-      setTimeout(() => updatePosts(state, time, i18n), time);
-    });
+  return Promise.all(fetchPromises);
+};
+
+const updatePosts = (state, i18n) => {
+  const timeOut = 5000;
+
+  const update = () => {
+    const { feeds } = state;
+
+    fetchPostsFromFeeds(feeds, state, i18n)
+      .finally(() => {
+        setTimeout(update, timeOut);
+      });
+  };
+
+  update();
 };
 
 const app = () => {
@@ -86,12 +80,8 @@ const app = () => {
     resources,
   }).then(() => {
     yup.setLocale({
-      mixed: {
-        notOneOf: i18n.t('errors.duplicateUrl'),
-      },
-      string: {
-        url: i18n.t('errors.invalidUrl'),
-      },
+      mixed: { notOneOf: i18n.t('errors.duplicateUrl') },
+      string: { url: i18n.t('errors.invalidUrl') },
     });
 
     const elements = {
@@ -116,8 +106,6 @@ const app = () => {
 
     const state = onChange(initialState, view(initialState, elements, i18n));
 
-    const timeOut = 5000;
-
     elements.form.addEventListener('submit', (event) => {
       event.preventDefault();
       state.form.processState = 'sending';
@@ -138,7 +126,7 @@ const app = () => {
 
           state.form.isValid = true;
           state.form.processState = 'finished';
-          updatePosts(state, timeOut);
+          updatePosts(state, i18n);
         })
         .catch((error) => {
           if (axios.isAxiosError(error)) {
