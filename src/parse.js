@@ -1,9 +1,9 @@
-export default (response, i18n) => {
+export default (response) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(response.data.contents, 'application/xml');
 
   const parserError = doc.querySelector('parsererror');
-  if (parserError) throw new Error(i18n.t('errors.parsingError'));
+  if (parserError) throw new Error('parsingError');
 
   const feed = {
     title: doc.querySelector('title').textContent,
@@ -18,6 +18,5 @@ export default (response, i18n) => {
     link: item.querySelector('link').textContent,
   }));
 
-  const parseResponse = { feed, posts };
-  return Promise.resolve(parseResponse);
+  return { feed, posts };
 };
