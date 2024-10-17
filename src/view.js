@@ -1,4 +1,4 @@
-const renderErrors = (elements, errors) => {
+const renderErrors = (elements, errors, i18n) => {
   const {
     feedback,
     input,
@@ -6,7 +6,12 @@ const renderErrors = (elements, errors) => {
     submit,
   } = elements;
 
-  feedback.textContent = errors;
+  if (errors.network) {
+    feedback.textContent = i18n.t('errors.networkError');
+  } else if (errors.form) {
+    feedback.textContent = i18n.t(`errors.${errors.form}`);
+  }
+
   input.classList.add('is-invalid');
   feedback.classList.add('text-danger');
   submit.disabled = false;
@@ -45,7 +50,7 @@ const renderProcessState = (value, elements, i18n, errors) => {
       renderSuccess(elements, i18n);
       break;
     case 'failed':
-      renderErrors(elements, errors);
+      renderErrors(elements, errors, i18n);
       break;
     default:
       break;
