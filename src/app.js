@@ -7,17 +7,27 @@ import resources from './locales/index.js';
 import view from './view.js';
 import parse from './parse.js';
 
-const getAxiosResponse = (link) => {
-  const url = `https://allorigins.hexlet.app/get?disableCache=true&url=${encodeURIComponent(link)}`;
-  return axios.get(url);
+const makeProxyURL = (link) => {
+  const proxy = 'https://allorigins.hexlet.app/get';
+  const url = new URL(proxy);
+
+  url.searchParams.append('disableCache', 'true');
+  url.searchParams.append('url', link);
+
+  return url;
 };
 
-const validate = (link, addLinks, i18n) => {
+const getAxiosResponse = (link) => {
+  const proxiedUrl = makeProxyURL(link);
+  return axios.get(proxiedUrl);
+};
+
+const validate = (link, addLinks) => {
   const schema = yup.string()
     .trim()
-    .required(i18n.t('errors.required'))
-    .url(i18n.t('errors.invalidUrl'))
-    .notOneOf(addLinks, i18n.t('errors.duplicateUrl'));
+    .required('required')
+    .url('invalidUrl')
+    .notOneOf(addLinks, 'duplicateUrl');
 
   return schema.validate(link);
 };
@@ -36,9 +46,9 @@ const makePost = (posts) => posts.map(({ title, description, link }) => ({
   link,
 }));
 
-const fetchPostsFromFeeds = (feeds, state, i18n) => {
+const fetchPostsFromFeeds = (feeds, state) => {
   const fetchPromises = feeds.map((feed) => getAxiosResponse(feed.link)
-    .then((response) => parse(response, i18n))
+    .then((response) => parse(response))
     .then((parsedData) => {
       const newPosts = makePost(parsedData.posts);
       const uniqueNewPosts = newPosts.filter(
@@ -56,13 +66,13 @@ const fetchPostsFromFeeds = (feeds, state, i18n) => {
   return Promise.all(fetchPromises);
 };
 
-const updatePosts = (state, i18n) => {
+const updatePosts = (state) => {
   const timeOut = 5000;
 
   const update = () => {
     const { feeds } = state;
 
-    fetchPostsFromFeeds(feeds, state, i18n)
+    fetchPostsFromFeeds(feeds, state)
       .finally(() => {
         setTimeout(update, timeOut);
       });
@@ -80,8 +90,8 @@ const app = () => {
     resources,
   }).then(() => {
     yup.setLocale({
-      mixed: { notOneOf: i18n.t('errors.duplicateUrl') },
-      string: { url: i18n.t('errors.invalidUrl') },
+      mixed: { notOneOf: 'duplicateUrl' },
+      string: { url: 'invalidUrl' },
     });
 
     const elements = {
@@ -100,9 +110,12 @@ const app = () => {
       form: {
         processState: 'filling',
         isValid: true,
-        addLinks: [],
       },
-      errors: {},
+      errors: {
+        form: null,
+        network: null,
+      },
+      addLinks: [],
       feeds: [],
       posts: [],
       readPosts: [],
@@ -111,39 +124,41 @@ const app = () => {
 
     const state = onChange(initialState, view(initialState, elements, i18n));
 
+    updatePosts(state);
+
     elements.form.addEventListener('submit', (event) => {
       event.preventDefault();
       state.form.processState = 'sending';
       const formData = new FormData(event.target);
       const value = formData.get('url');
-      const links = state.form.addLinks;
+      const links = state.addLinks;
 
       validate(value, links, i18n)
         .then(() => getAxiosResponse(value))
-        .then((response) => parse(response, i18n))
-        .then((parseResponse) => {
+        .then((response) => {
+          const parseResponse = parse(response);
           const feed = makeFeed(parseResponse.feed, value);
           const posts = makePost(parseResponse.posts);
 
           state.feeds.unshift(feed);
           state.posts = [...posts, ...state.posts];
-          state.form.addLinks.push(value);
+          state.addLinks.push(value);
 
           state.form.isValid = true;
           state.form.processState = 'finished';
-          updatePosts(state, i18n);
         })
         .catch((error) => {
           if (axios.isAxiosError(error)) {
-            state.errors = i18n.t('errors.networkError');
+            state.errors.network = 'networkError';
           } else {
-            state.errors = error.message;
+            state.errors.form = error.message;
           }
           state.form.isValid = false;
           state.form.processState = 'failed';
         })
         .finally(() => {
           state.form.processState = 'filling';
+          // updatePosts(state);
         });
     });
 
