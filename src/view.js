@@ -69,7 +69,7 @@ const renderPosts = (elements, state, i18n) => {
 
   const h2 = document.createElement('h2');
   h2.textContent = i18n.t('posts');
-  h2.classList.add('cars-title', 'h4');
+  h2.classList.add('card-title', 'h4');
   cardBody.append(h2);
 
   const ul = document.createElement('ul');
@@ -88,6 +88,13 @@ const renderPosts = (elements, state, i18n) => {
     a.setAttribute('target', '_blank');
     a.setAttribute('rel', 'noopener noreferrer');
     a.textContent = post.title;
+
+    if (state.readPosts.some((readPost) => readPost.id === post.id)) {
+      a.classList.remove('fw-bold');
+      a.classList.add('fw-normal', 'text-muted');
+    } else {
+      a.classList.add('fw-bold');
+    }
 
     const button = document.createElement('button');
     button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
@@ -143,7 +150,7 @@ const renderFeeds = (elements, state, i18n) => {
 
 const renderReadPosts = (elements, posts) => {
   const { modalTitle, modalDescription, modalLink } = elements;
-  const result = posts.forEach((post) => {
+  posts.forEach((post) => {
     const {
       title,
       description,
@@ -158,7 +165,6 @@ const renderReadPosts = (elements, posts) => {
     linkStyle.classList.remove('fw-bold');
     linkStyle.classList.add('fw-normal', 'text-muted');
   });
-  return result;
 };
 
 const view = (state, elements, i18n) => (path, value) => {
