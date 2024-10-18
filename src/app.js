@@ -32,14 +32,14 @@ const validate = (link, addLinks) => {
   return schema.validate(link);
 };
 
-const makeFeed = (feed, value) => ({
-  title: feed.title,
-  description: feed.description,
+const makeFeed = ({ title, description }, link) => ({
+  title,
+  description,
   id: uniqueId(),
-  link: value,
+  link,
 });
 
-const makePost = (posts) => posts.map(({ title, description, link }) => ({
+const makePosts = (posts) => posts.map(({ title, description, link }) => ({
   title,
   description,
   id: uniqueId(),
@@ -49,8 +49,8 @@ const makePost = (posts) => posts.map(({ title, description, link }) => ({
 const fetchPostsFromFeeds = (feeds, state) => {
   const fetchPromises = feeds.map((feed) => getAxiosResponse(feed.link)
     .then((response) => parse(response))
-    .then((parsedData) => {
-      const newPosts = makePost(parsedData.posts);
+    .then(({ items }) => {
+      const newPosts = makePosts(items);
       const uniqueNewPosts = newPosts.filter(
         (newPost) => !state.posts.some((post) => post.link === newPost.link),
       );
@@ -129,6 +129,7 @@ const app = () => {
     elements.form.addEventListener('submit', (event) => {
       event.preventDefault();
       state.form.processState = 'sending';
+
       const formData = new FormData(event.target);
       const value = formData.get('url');
       const links = state.addLinks;
@@ -136,9 +137,9 @@ const app = () => {
       validate(value, links, i18n)
         .then(() => getAxiosResponse(value))
         .then((response) => {
-          const parseResponse = parse(response);
-          const feed = makeFeed(parseResponse.feed, value);
-          const posts = makePost(parseResponse.posts);
+          const { title, description, items } = parse(response);
+          const feed = makeFeed({ title, description }, value);
+          const posts = makePosts(items);
 
           state.feeds.unshift(feed);
           state.posts = [...posts, ...state.posts];
@@ -158,7 +159,6 @@ const app = () => {
         })
         .finally(() => {
           state.form.processState = 'filling';
-          // updatePosts(state);
         });
     });
 
